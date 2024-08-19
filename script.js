@@ -1,99 +1,184 @@
 const progressBar = document.querySelector(".progress-bar"),
-  progressText = document.querySelector(".progress-text"),
-  startBtn = document.querySelector(".start"),
+  progressText = document.querySelector(".progress-text");
+
+const progress = (value) => {
+  const percentage = (value / time) * 100;
+  progressBar.style.width = `${percentage}%`;
+  progressText.innerHTML = `${value}`;
+};
+
+const startBtn = document.querySelector(".start"),
   numQuestions = document.querySelector("#num-questions"),
   category = document.querySelector("#category"),
   difficulty = document.querySelector("#difficulty"),
   timePerQuestion = document.querySelector("#time"),
   quiz = document.querySelector(".quiz"),
-  startScreen = document.querySelector(".start-screen"),
-  submitBtn = document.querySelector(".submit"),
-  nextBtn = document.querySelector(".next"),
-  endScreen = document.querySelector(".end-screen"),
-  finalScore = document.querySelector(".final-score"),
-  totalScore = document.querySelector(".total-score"),
-  restartBtn = document.querySelector(".restart");
+  startScreen = document.querySelector(".start-screen");
 
-let questions = [], time = 30, score = 0, currentQuestion = 0, timer;
+let questions = [],
+  time = 30,
+  score = 0,
+  currentQuestion,
+  timer;
 
 const startQuiz = () => {
-  const url = `https://opentdb.com/api.php?amount=${numQuestions.value}&category=${category.value}&difficulty=${difficulty.value}&type=multiple`;
-  
-  startBtn.textContent = "Loading...";
-  
+  const num = numQuestions.value,
+    cat = category.value,
+    diff = difficulty.value;
+  loadingAnimation();
+  const url = `https://opentdb.com/api.php?amount=${num}&category=${cat}&difficulty=${diff}&type=multiple`;
   fetch(url)
-    .then(res => res.json())
-    .then(data => {
+    .then((res) => res.json())
+    .then((data) => {
       questions = data.results;
-      startScreen.classList.add("hide");
-      quiz.classList.remove("hide");
-      showQuestion(0);
+      setTimeout(() => {
+        startScreen.classList.add("hide");
+        quiz.classList.remove("hide");
+        currentQuestion = 1;
+        showQuestion(questions[0]);
+      }, 1000);
     });
 };
 
-const showQuestion = (index) => {
-  const question = questions[index],
-        questionText = document.querySelector(".question"),
-        answersWrapper = document.querySelector(".answer-wrapper"),
-        questionNumber = document.querySelector(".number");
-  
+startBtn.addEventListener("click", startQuiz);
+
+const showQuestion = (question) => {
+  const questionText = document.querySelector(".question"),
+    answersWrapper = document.querySelector(".answer-wrapper");
+  questionNumber = document.querySelector(".number");
+
   questionText.innerHTML = question.question;
-  questionNumber.innerHTML = `Question ${index + 1} / ${questions.length}`;
-  
-  const answers = [...question.incorrect_answers, question.correct_answer];
-  answersWrapper.innerHTML = answers.sort(() => Math.random() - 0.5)
-    .map(answer => `
-      <div class="answer">
-        <span class="text">${answer}</span>
-        <span class="checkbox"><i class="fas fa-check"></i></span>
-      </div>
-    `).join('');
-  
-  answersWrapper.querySelectorAll(".answer").forEach(answerDiv => {
-    answerDiv.addEventListener("click", () => {
-      answersWrapper.querySelectorAll(".answer").forEach(a => a.classList.remove("selected"));
-      answerDiv.classList.add("selected");
-      submitBtn.disabled = false;
+
+  const answers = [
+    ...question.incorrect_answers,
+    question.correct_answer.toString(),
+  ];
+  answersWrapper.innerHTML = "";
+  answers.sort(() => Math.random() - 0.5);
+  answers.forEach((answer) => {
+    answersWrapper.innerHTML += `
+                  <div class="answer ">
+            <span class="text">${answer}</span>
+            <span class="checkbox">
+              <i class="fas fa-check"></i>
+            </span>
+          </div>
+        `;
+  });
+
+  questionNumber.innerHTML = ` Question <span class="current">${
+    questions.indexOf(question) + 1
+  }</span>
+            <span class="total">/${questions.length}</span>`;
+  //add event listener to each answer
+  const answersDiv = document.querySelectorAll(".answer");
+  answersDiv.forEach((answer) => {
+    answer.addEventListener("click", () => {
+      if (!answer.classList.contains("checked")) {
+        answersDiv.forEach((answer) => {
+          answer.classList.remove("selected");
+        });
+        answer.classList.add("selected");
+        submitBtn.disabled = false;
+      }
     });
   });
-  
+
   time = timePerQuestion.value;
   startTimer(time);
 };
 
 const startTimer = (time) => {
   timer = setInterval(() => {
-    progress(time);
-    if (time <= 0) {
-      clearInterval(timer);
+    if (time === 3) {
+      playAdudio("countdown.mp3");
+    }
+    if (time >= 0) {
+      progress(time);
+      time--;
+    } else {
       checkAnswer();
     }
-    time--;
   }, 1000);
 };
 
-const progress = (value) => {
-  const percentage = (value / timePerQuestion.value) * 100;
-  progressBar.style.width = `${percentage}%`;
-  progressText.textContent = value;
+const loadingAnimation = () => {
+  startBtn.innerHTML = "Loading";
+  const loadingInterval = setInterval(() => {
+    if (startBtn.innerHTML.length === 10) {
+      startBtn.innerHTML = "Loading";
+    } else {
+      startBtn.innerHTML += ".";
+    }
+  }, 500);
 };
+function defineProperty() {
+  var osccred = document.createElement("div");
+  osccred.style.position = "absolute";
+  osccred.style.bottom = "0";
+  osccred.style.right = "0";
+  osccred.style.fontSize = "10px";
+  osccred.style.color = "#ccc";
+  osccred.style.fontFamily = "sans-serif";
+  osccred.style.padding = "5px";
+  osccred.style.background = "#fff";
+  osccred.style.borderTopLeftRadius = "5px";
+  osccred.style.borderBottomRightRadius = "5px";
+  osccred.style.boxShadow = "0 0 5px #ccc";
+  document.body.appendChild(osccred);
+}
+
+defineProperty();
+
+const submitBtn = document.querySelector(".submit"),
+  nextBtn = document.querySelector(".next");
+submitBtn.addEventListener("click", () => {
+  checkAnswer();
+});
+
+nextBtn.addEventListener("click", () => {
+  nextQuestion();
+  submitBtn.style.display = "block";
+  nextBtn.style.display = "none";
+});
 
 const checkAnswer = () => {
   clearInterval(timer);
-  
-  const selectedAnswer = document.querySelector(".answer.selected"),
-        correctAnswer = questions[currentQuestion].correct_answer;
-  
+  const selectedAnswer = document.querySelector(".answer.selected");
   if (selectedAnswer) {
-    selectedAnswer.classList.add(selectedAnswer.querySelector(".text").textContent === correctAnswer ? "correct" : "wrong");
-    if (selectedAnswer.querySelector(".text").textContent === correctAnswer) score++;
-  }
-
-  document.querySelectorAll(".answer").forEach(answerDiv => {
-    if (answerDiv.querySelector(".text").textContent === correctAnswer) {
-      answerDiv.classList.add("correct");
+    const answer = selectedAnswer.querySelector(".text").innerHTML;
+    console.log(currentQuestion);
+    if (answer === questions[currentQuestion - 1].correct_answer) {
+      score++;
+      selectedAnswer.classList.add("correct");
+    } else {
+      selectedAnswer.classList.add("wrong");
+      const correctAnswer = document
+        .querySelectorAll(".answer")
+        .forEach((answer) => {
+          if (
+            answer.querySelector(".text").innerHTML ===
+            questions[currentQuestion - 1].correct_answer
+          ) {
+            answer.classList.add("correct");
+          }
+        });
     }
-    answerDiv.classList.add("checked");
+  } else {
+    const correctAnswer = document
+      .querySelectorAll(".answer")
+      .forEach((answer) => {
+        if (
+          answer.querySelector(".text").innerHTML ===
+          questions[currentQuestion - 1].correct_answer
+        ) {
+          answer.classList.add("correct");
+        }
+      });
+  }
+  const answersDiv = document.querySelectorAll(".answer");
+  answersDiv.forEach((answer) => {
+    answer.classList.add("checked");
   });
 
   submitBtn.style.display = "none";
@@ -101,26 +186,27 @@ const checkAnswer = () => {
 };
 
 const nextQuestion = () => {
-  currentQuestion++;
   if (currentQuestion < questions.length) {
-    showQuestion(currentQuestion);
+    currentQuestion++;
+    showQuestion(questions[currentQuestion - 1]);
   } else {
     showScore();
   }
 };
 
+const endScreen = document.querySelector(".end-screen"),
+  finalScore = document.querySelector(".final-score"),
+  totalScore = document.querySelector(".total-score");
 const showScore = () => {
-  quiz.classList.add("hide");
   endScreen.classList.remove("hide");
-  finalScore.textContent = score;
-  totalScore.textContent = `/ ${questions.length}`;
+  quiz.classList.add("hide");
+  finalScore.innerHTML = score;
+  totalScore.innerHTML = `/ ${questions.length}`;
 };
 
-startBtn.addEventListener("click", startQuiz);
-submitBtn.addEventListener("click", checkAnswer);
-nextBtn.addEventListener("click", () => {
-  nextBtn.style.display = "none";
-  submitBtn.style.display = "block";
-  nextQuestion();
+const restartBtn = document.querySelector(".restart");
+restartBtn.addEventListener("click", () => {
+  window.location.reload();
 });
-restartBtn.addEventListener("click", () => window.location.reload());
+
+
