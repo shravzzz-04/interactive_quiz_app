@@ -88,19 +88,29 @@ const showQuestion = (question) => {
   startTimer(time);
 };
 
-const startTimer = (time) => {
+const startTimer = (initialTime) => {
+  let time = initialTime; // Use a local variable to avoid modifying the parameter directly
+
+  // Update progress and timer every second
   timer = setInterval(() => {
-    if (time === 3) {
+    if (time === -1) {
       playAdudio("countdown.mp3");
     }
-    if (time >= 0) {
-      progress(time);
-      time--;
-    } else {
-      checkAnswer();
+    
+    // Update progress bar and text
+    progress(time);
+    
+    // Decrement time
+    time--;
+    
+    // Stop the timer and check the answer when time reaches -1
+    if (time < 0) {
+      clearInterval(timer); // Ensure timer is cleared
+      checkAnswer(); // Call checkAnswer when the timer reaches 0
     }
   }, 1000);
 };
+
 
 const loadingAnimation = () => {
   startBtn.innerHTML = "Loading";
@@ -208,5 +218,4 @@ const restartBtn = document.querySelector(".restart");
 restartBtn.addEventListener("click", () => {
   window.location.reload();
 });
-
 
